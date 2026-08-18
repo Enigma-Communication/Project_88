@@ -61,8 +61,15 @@ export function buildPrompt(t: Triage): string {
     // Prompt.md § E — art director amendment, 18 Aug.
     `SOLID FILL, NO LOGOS: do not draw or reproduce sponsor logos, brand marks, jersey lettering, numbers, ` +
       `badges or small printed details. Fill those areas with solid flat ink as a plain block instead. ` +
-      `Do the same with fine surface detail — shoe branding, stitching, fabric print, small patterns: ` +
-      `simplify all of it into solid shapes. No legible text or recognisable logo anywhere in the image.`,
+      `Do the same with fine surface detail — shoe branding, stitching, fabric print. ` +
+      `No legible text or recognisable logo anywhere in the image.`,
+
+    // The above overshot on first use and flooded the jersey, losing the club
+    // stripes. They are the most recognisable thing about the kit.
+    `KEEP THE JERSEY PATTERN: the kit's own stripe and panel design must be preserved. ` +
+      `Draw the vertical stripes, hoops, chevrons and colour-block panels as bold flat shapes that follow the ` +
+      `body and its folds. NEVER flood the jersey with one unbroken block of ink and never let a logo fill ` +
+      `cover the stripes. Remove the printing on the jersey; keep the jersey.`,
 
     GROUND,
 

@@ -35,12 +35,18 @@ E. Art Director Amendments
 (18 Aug — added after first review round. Keep this file and
 generator/src/prompt.ts in sync.)
 
-SOLID FILL, NO LOGOS
+SOLID FILL, NO LOGOS — BUT KEEP THE JERSEY PATTERN
 Sponsor logos, brand marks, jersey lettering, numbers, badges and small
 printed details must NOT be drawn or reproduced. Fill those areas with solid
-flat ink instead, as a plain block. The same applies to any fine surface
-detail — shoe branding, stitching, fabric print, small patterns. Simplify all
-of it into solid shapes. No legible text or recognisable logo anywhere.
+flat ink instead, as a plain block. The same applies to fine surface detail —
+shoe branding, stitching, fabric print.
+
+CRITICAL EXCEPTION: the jersey's own stripe and panel pattern MUST be kept.
+The vertical stripes, hoops, chevrons and colour-block panels of the kit are
+club identity and are the most recognisable thing about it. Draw them as bold
+flat shapes, following the body and the folds. Never flood the jersey with one
+unbroken block of ink, and never cover the stripes with a logo fill. Remove the
+printing on the jersey; keep the jersey.
 
 STENCIL INVERSION (for dark backgrounds)
 Deliverable only, not a prompt instruction. The illustration is a one-colour

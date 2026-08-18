@@ -164,11 +164,24 @@ export async function stripBorderFrame(png: Buffer): Promise<Buffer> {
  * pixels in from the canvas edge — everything the flood cannot reach is
  * "inside the figure". Without that bound, inverting alpha would simply fill
  * the whole canvas.
+ *
+ * A contour is then drawn back on. Inverting alone destroys the heavy outline
+ * Prompt.md calls for, because that outline WAS the ink — flip it and the
+ * figure's edge becomes the transparent part. So we band the inside of the
+ * silhouette edge back to solid ink at `outline` px wide.
  */
-export async function stencilInvert(png: Buffer, hex = INK_HEX): Promise<Buffer> {
+export async function stencilInvert(
+  png: Buffer,
+  opts: { hex?: string; outline?: number } = {},
+): Promise<Buffer> {
+  const hex = opts.hex ?? INK_HEX;
+
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const W = info.width, H = info.height, N = W * H;
   const alphaAt = (i: number) => data[i * 4 + 3];
+
+  // scale the contour with the image so it reads the same at any size
+  const outline = opts.outline ?? Math.max(3, Math.round(Math.min(W, H) * 0.012));
 
   // flood the outside: transparent pixels reachable from the border
   const outside = new Uint8Array(N);
@@ -189,6 +202,36 @@ export async function stencilInvert(png: Buffer, hex = INK_HEX): Promise<Buffer>
     if (y < H - 1) { const j = i + W; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
   }
 
+  // Chamfer distance from the outside, so we can band the silhouette edge.
+  // Two passes over the grid approximate a Euclidean distance closely enough
+  // for a contour of a few pixels.
+  const BIG = 1e6;
+  const dist = new Float32Array(N);
+  for (let i = 0; i < N; i++) dist[i] = outside[i] ? 0 : BIG;
+  const D1 = 1, D2 = 1.4142;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      let d = dist[i];
+      if (x > 0)            d = Math.min(d, dist[i - 1] + D1);
+      if (y > 0)            d = Math.min(d, dist[i - W] + D1);
+      if (x > 0 && y > 0)   d = Math.min(d, dist[i - W - 1] + D2);
+      if (x < W - 1 && y > 0) d = Math.min(d, dist[i - W + 1] + D2);
+      dist[i] = d;
+    }
+  }
+  for (let y = H - 1; y >= 0; y--) {
+    for (let x = W - 1; x >= 0; x--) {
+      const i = y * W + x;
+      let d = dist[i];
+      if (x < W - 1)              d = Math.min(d, dist[i + 1] + D1);
+      if (y < H - 1)              d = Math.min(d, dist[i + W] + D1);
+      if (x < W - 1 && y < H - 1) d = Math.min(d, dist[i + W + 1] + D2);
+      if (x > 0 && y < H - 1)     d = Math.min(d, dist[i + W - 1] + D2);
+      dist[i] = d;
+    }
+  }
+
   const r0 = parseInt(hex.slice(1, 3), 16);
   const g0 = parseInt(hex.slice(3, 5), 16);
   const b0 = parseInt(hex.slice(5, 7), 16);
@@ -197,8 +240,18 @@ export async function stencilInvert(png: Buffer, hex = INK_HEX): Promise<Buffer>
   for (let i = 0; i < N; i++) {
     const d = i * 4;
     out[d] = r0; out[d + 1] = g0; out[d + 2] = b0;
-    // inside the silhouette the alpha flips; outside stays clear
-    out[d + 3] = outside[i] ? 0 : 255 - alphaAt(i);
+
+    if (outside[i]) { out[d + 3] = 0; continue; }
+
+    const inverted = 255 - alphaAt(i);
+    if (dist[i] <= outline) {
+      out[d + 3] = 255;                                  // solid contour band
+    } else if (dist[i] <= outline + 1.5) {
+      const t = (dist[i] - outline) / 1.5;               // 1.5px feather off the band
+      out[d + 3] = Math.round(255 * (1 - t) + inverted * t);
+    } else {
+      out[d + 3] = inverted;
+    }
   }
   return sharp(out, { raw: { width: W, height: H, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer();
 }

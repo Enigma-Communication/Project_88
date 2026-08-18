@@ -45,6 +45,7 @@ Options
   --clean                    delete everything this tool generated here
   --force                    generate even if preflight says NOT SUITABLE
   --stencil                  also write a stencil-inverted PNG for dark backgrounds
+  --outline=<px>             stencil contour thickness (default scales with size)
 
 ${C.dim("Triage results are cached per photo — re-running costs no vision quota.")}
 `);
@@ -167,7 +168,8 @@ try {
   const wantStencil = args.includes("--stencil") || keep;
   let stencil: Buffer | null = null;
   if (wantStencil) {
-    stencil = await stencilInvert(inked);
+    const outlinePx = flag("outline", "");
+    stencil = await stencilInvert(inked, outlinePx ? { outline: Number(outlinePx) } : {});
     fs.writeFileSync(out.replace(/\.png$/, "_stencil.png"), stencil);
   }
 
