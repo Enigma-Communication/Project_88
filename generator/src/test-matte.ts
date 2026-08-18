@@ -1,8 +1,8 @@
 import sharp from "sharp";
 import fs from "node:fs";
 import path from "node:path";
-import { REFERENCE_DIR, OUT_DIR } from "./config.js";
-import { matteToInk, onBackground } from "./matte.js";
+import { REFERENCE_DIR, OUT_DIR } from "p88-core/config";
+import { matteToInk, onBackground } from "p88-core/matte";
 
 /**
  * Proves the matte pipeline with zero API calls: take a reference illustration,

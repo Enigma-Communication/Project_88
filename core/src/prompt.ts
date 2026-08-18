@@ -1,4 +1,4 @@
-import type { Triage } from "./gemini.js";
+import type { Triage } from "./gemini";
 
 /**
  * The art director's prompt, from Prompt.md. That file is the source of truth.

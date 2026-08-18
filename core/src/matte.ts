@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { INK_HEX } from "./config.js";
+import { INK_HEX } from "./config";
 
 /**
  * Turn the model's flat-ground illustration into a true one-colour ink

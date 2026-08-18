@@ -1,6 +1,6 @@
 import sharp from "sharp";
-import type { Box, Triage } from "./gemini.js";
-import { GEN_INPUT_PX } from "./config.js";
+import type { Box, Triage } from "./gemini";
+import { GEN_INPUT_PX } from "./config";
 
 /**
  * Crop to the dominant athlete with headroom, then upscale to the model's

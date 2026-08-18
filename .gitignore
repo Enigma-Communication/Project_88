@@ -8,6 +8,10 @@ dist/
 .next/
 out/
 
+# Next.js auto-generates these
+web/AGENTS.md
+web/CLAUDE.md
+
 # triage cache (regenerable, costs quota to rebuild but not source)
 generator/.cache/
 generator/output/

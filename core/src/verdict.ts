@@ -1,4 +1,4 @@
-import type { Triage } from "./gemini.js";
+import type { Triage } from "./gemini";
 
 export type Verdict = "READY" | "NEEDS CROP" | "NOT SUITABLE";
 

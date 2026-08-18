@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #D82020;
+  --color-paper: #F5F0E8;
+}
+
+:root { color-scheme: dark; }
+
+body {
+  background: #0d0d0f;
+  color: #e8e6e3;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* alpha checkerboard, so a transparent PNG is visibly transparent */
+.checker {
+  background-image:
+    linear-gradient(45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2e 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2e 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  background-color: #232326;
+}

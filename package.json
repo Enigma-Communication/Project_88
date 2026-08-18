@@ -1,0 +1,5 @@
+{
+  "name": "project-88",
+  "private": true,
+  "workspaces": ["core", "generator", "web"]
+}

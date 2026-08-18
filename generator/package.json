@@ -11,9 +11,7 @@
     "matte": "tsx src/test-matte.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.34.0",
-    "dotenv": "^17.2.4",
-    "sharp": "^0.34.5"
+    "p88-core": "*"
   },
   "devDependencies": {
     "tsx": "^4.20.7",

@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { ROOT } from "./config.js";
-import type { Triage } from "./gemini.js";
+import { ROOT } from "p88-core/config";
+import type { Triage } from "p88-core/gemini";
 
 /**
  * Triage results are cached per source file. The free tier allows only 20

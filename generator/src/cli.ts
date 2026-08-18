@@ -10,14 +10,14 @@
 import sharp from "sharp";
 import fs from "node:fs";
 import path from "node:path";
-import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL, INK_HEX, REFERENCE_DIR, type ImageModelKey } from "./config.js";
-import { triage } from "./gemini.js";
-import { cropToSubject } from "./crop.js";
-import { buildPrompt } from "./prompt.js";
-import { matteToInk, detectGround, onBackground, stripBorderFrame, stencilInvert } from "./matte.js";
-import { generateImage } from "./gemini.js";
-import { readTriage, writeTriage, fallbackTriage } from "./cache.js";
-import { judge } from "./verdict.js";
+import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL, INK_HEX, REFERENCE_DIR, type ImageModelKey } from "p88-core/config";
+import { triage } from "p88-core/gemini";
+import { cropToSubject } from "p88-core/crop";
+import { buildPrompt } from "p88-core/prompt";
+import { matteToInk, detectGround, onBackground, stripBorderFrame, stencilInvert } from "p88-core/matte";
+import { generateImage } from "p88-core/gemini";
+import { readTriage, writeTriage, fallbackTriage } from "./cache";
+import { judge } from "p88-core/verdict";
 
 const C = {
   dim: (s: string) => `\x1b[2m${s}\x1b[0m`,

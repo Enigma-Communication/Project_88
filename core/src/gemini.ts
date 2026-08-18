@@ -1,7 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { API_KEY, VISION_MODEL, IMAGE_MODELS, type ImageModelKey } from "./config.js";
+import { apiKey, VISION_MODEL, IMAGE_MODELS, type ImageModelKey } from "./config";
 
-export const ai = new GoogleGenAI({ apiKey: API_KEY });
+let _ai: GoogleGenAI | null = null;
+function client(): GoogleGenAI {
+  if (!_ai) _ai = new GoogleGenAI({ apiKey: apiKey() });
+  return _ai;
+}
 
 export type Box = { ymin: number; xmin: number; ymax: number; xmax: number };
 export type Person = {
@@ -74,7 +78,7 @@ Return:
 - notes: anything an operator should know (props such as flags or capes, heavy motion blur, obstructions).`;
 
 export async function triage(imgB64: string, mime = "image/jpeg"): Promise<Triage> {
-  const res = await ai.models.generateContent({
+  const res = await client().models.generateContent({
     model: VISION_MODEL,
     contents: [{ role: "user", parts: [
       { inlineData: { mimeType: mime, data: imgB64 } },
@@ -101,7 +105,7 @@ export async function generateImage(
   prompt: string,
   images: { b64: string; mime: string }[],
 ): Promise<Buffer | null> {
-  const res = await ai.models.generateContent({
+  const res = await client().models.generateContent({
     model: IMAGE_MODELS[modelKey],
     contents: [{ role: "user", parts: [
       ...images.map((i) => ({ inlineData: { mimeType: i.mime, data: i.b64 } })),

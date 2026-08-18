@@ -1,9 +1,9 @@
 import sharp from "sharp";
 import path from "node:path";
 import fs from "node:fs";
-import { PHOTOS_DIR, OUT_DIR } from "./config.js";
-import { triage } from "./gemini.js";
-import { cropToSubject } from "./crop.js";
+import { PHOTOS_DIR, OUT_DIR } from "p88-core/config";
+import { triage } from "p88-core/gemini";
+import { cropToSubject } from "p88-core/crop";
 
 const file = process.argv[2] ?? "DSC04262.jpg";
 const src = path.join(PHOTOS_DIR, file);

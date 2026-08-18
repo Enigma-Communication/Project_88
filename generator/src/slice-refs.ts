@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import path from "node:path";
 import fs from "node:fs";
-import { REFERENCE_DIR } from "./config.js";
+import { REFERENCE_DIR } from "p88-core/config";
 
 /**
  * Split the AD's contact sheet into four separate style references.

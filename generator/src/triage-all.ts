@@ -1,8 +1,8 @@
 import sharp from "sharp";
 import fs from "node:fs";
 import path from "node:path";
-import { PHOTOS_DIR, OUT_DIR } from "./config.js";
-import { triage, type Triage } from "./gemini.js";
+import { PHOTOS_DIR, OUT_DIR } from "p88-core/config";
+import { triage, type Triage } from "p88-core/gemini";
 
 const TAGS: Record<string, string> = {
   DSC01649: "Red", DSC02466: "Red",

@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import path from "node:path";
-import { PHOTOS_DIR } from "./config.js";
-import { triage } from "./gemini.js";
+import { PHOTOS_DIR } from "p88-core/config";
+import { triage } from "p88-core/gemini";
 
 const file = process.argv[2] ?? "DSC04262.jpg";
 const buf = await sharp(path.join(PHOTOS_DIR, file))
