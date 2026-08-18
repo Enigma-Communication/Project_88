@@ -28,3 +28,22 @@ STYLE_ONLY
 Render {subject} as a single-colour screenprint-style illustration with rough ink edges, bold contour lines, carved negative-space highlights, simplified forms, dynamic diagonal composition, minimal detail, warm off-white paper ground and a vintage community sports poster finish.
 D. Negative Prompt
 photorealism, full colour rendering, smooth vector polish, gradients, airbrush shading, realistic skin, detailed facial features, glossy 3D, complex background, soft lighting, thin clean outlines, perfect symmetry, text, watermark
+
+---
+
+E. Art Director Amendments
+(18 Aug — added after first review round. Keep this file and
+generator/src/prompt.ts in sync.)
+
+SOLID FILL, NO LOGOS
+Sponsor logos, brand marks, jersey lettering, numbers, badges and small
+printed details must NOT be drawn or reproduced. Fill those areas with solid
+flat ink instead, as a plain block. The same applies to any fine surface
+detail — shoe branding, stitching, fabric print, small patterns. Simplify all
+of it into solid shapes. No legible text or recognisable logo anywhere.
+
+STENCIL INVERSION (for dark backgrounds)
+Deliverable only, not a prompt instruction. The illustration is a one-colour
+ink separation; on dark backgrounds it can also be exported inverted, the way
+a stencil artist cuts a plate — ink and carved-out areas swapping, so the
+figure reads light-on-dark. Handled in export, not by the model.

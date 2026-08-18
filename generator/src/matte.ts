@@ -152,6 +152,57 @@ export async function stripBorderFrame(png: Buffer): Promise<Buffer> {
   return sharp(png).extract({ left, top, width: w, height: h }).trim({ threshold: 1 }).png().toBuffer();
 }
 
+/**
+ * Stencil inversion — swap ink and carved-out areas within the figure.
+ *
+ * The AD's note: on dark backgrounds, cut it the way a stencil artist would.
+ * Our normal output is ink-positive (red marks, everything else transparent),
+ * so on black the carved highlights vanish into the background. Inverting
+ * inside the silhouette makes the figure read light-on-dark instead.
+ *
+ * The inversion is bounded by the silhouette, found by flooding transparent
+ * pixels in from the canvas edge — everything the flood cannot reach is
+ * "inside the figure". Without that bound, inverting alpha would simply fill
+ * the whole canvas.
+ */
+export async function stencilInvert(png: Buffer, hex = INK_HEX): Promise<Buffer> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, N = W * H;
+  const alphaAt = (i: number) => data[i * 4 + 3];
+
+  // flood the outside: transparent pixels reachable from the border
+  const outside = new Uint8Array(N);
+  const stack: number[] = [];
+  const OPEN = 24; // alpha at or below this is passable
+  for (let x = 0; x < W; x++) {
+    for (const i of [x, (H - 1) * W + x]) if (alphaAt(i) <= OPEN && !outside[i]) { outside[i] = 1; stack.push(i); }
+  }
+  for (let y = 0; y < H; y++) {
+    for (const i of [y * W, y * W + W - 1]) if (alphaAt(i) <= OPEN && !outside[i]) { outside[i] = 1; stack.push(i); }
+  }
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % W, y = (i / W) | 0;
+    if (x > 0)     { const j = i - 1; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
+    if (x < W - 1) { const j = i + 1; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
+    if (y > 0)     { const j = i - W; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
+    if (y < H - 1) { const j = i + W; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
+  }
+
+  const r0 = parseInt(hex.slice(1, 3), 16);
+  const g0 = parseInt(hex.slice(3, 5), 16);
+  const b0 = parseInt(hex.slice(5, 7), 16);
+
+  const out = Buffer.alloc(N * 4);
+  for (let i = 0; i < N; i++) {
+    const d = i * 4;
+    out[d] = r0; out[d + 1] = g0; out[d + 2] = b0;
+    // inside the silhouette the alpha flips; outside stays clear
+    out[d + 3] = outside[i] ? 0 : 255 - alphaAt(i);
+  }
+  return sharp(out, { raw: { width: W, height: H, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer();
+}
+
 /** Compose a transparent PNG over a solid colour, for review sheets. */
 export async function onBackground(pngWithAlpha: Buffer, bg: string): Promise<Buffer> {
   const meta = await sharp(pngWithAlpha).metadata();

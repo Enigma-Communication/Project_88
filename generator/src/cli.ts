@@ -14,7 +14,7 @@ import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL, INK_HEX, REFERENCE_DIR, type ImageMo
 import { triage } from "./gemini.js";
 import { cropToSubject } from "./crop.js";
 import { buildPrompt } from "./prompt.js";
-import { matteToInk, detectGround, onBackground, stripBorderFrame } from "./matte.js";
+import { matteToInk, detectGround, onBackground, stripBorderFrame, stencilInvert } from "./matte.js";
 import { generateImage } from "./gemini.js";
 import { readTriage, writeTriage, fallbackTriage } from "./cache.js";
 import { judge } from "./verdict.js";
@@ -44,6 +44,7 @@ Options
   --fresh                    ignore the cached triage for this photo
   --clean                    delete everything this tool generated here
   --force                    generate even if preflight says NOT SUITABLE
+  --stencil                  also write a stencil-inverted PNG for dark backgrounds
 
 ${C.dim("Triage results are cached per photo — re-running costs no vision quota.")}
 `);
@@ -162,9 +163,22 @@ try {
   fs.writeFileSync(out, inked);
   done(`${(inked.length / 1024).toFixed(0)}kb`);
 
+  // stencil inversion — for dark backgrounds, ink and carved areas swap
+  const wantStencil = args.includes("--stencil") || keep;
+  let stencil: Buffer | null = null;
+  if (wantStencil) {
+    stencil = await stencilInvert(inked);
+    fs.writeFileSync(out.replace(/\.png$/, "_stencil.png"), stencil);
+  }
+
   if (keep) {
     for (const [name, bg] of [["white", "#FFFFFF"], ["black", "#111111"], ["navy", "#001A5C"]] as const) {
       fs.writeFileSync(out.replace(/\.png$/, `_on-${name}.png`), await onBackground(inked, bg));
+    }
+    if (stencil) {
+      for (const [name, bg] of [["black", "#111111"], ["navy", "#001A5C"]] as const) {
+        fs.writeFileSync(out.replace(/\.png$/, `_stencil-on-${name}.png`), await onBackground(stencil, bg));
+      }
     }
   }
 

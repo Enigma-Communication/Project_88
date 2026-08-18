@@ -58,6 +58,12 @@ export function buildPrompt(t: Triage): string {
 
     `Redraw the athlete in the supplied photograph. Keep their pose exactly as photographed.`,
 
+    // Prompt.md § E — art director amendment, 18 Aug.
+    `SOLID FILL, NO LOGOS: do not draw or reproduce sponsor logos, brand marks, jersey lettering, numbers, ` +
+      `badges or small printed details. Fill those areas with solid flat ink as a plain block instead. ` +
+      `Do the same with fine surface detail — shoe branding, stitching, fabric print, small patterns: ` +
+      `simplify all of it into solid shapes. No legible text or recognisable logo anywhere in the image.`,
+
     GROUND,
 
     `Avoid: ${NEGATIVE}.`,
