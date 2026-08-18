@@ -20,11 +20,16 @@ APP_PASSWORD=...     # shared password. Leave EMPTY to disable the gate locally
 ## Deploy to Vercel
 
 1. Push the repo to GitHub.
-2. Import it in Vercel. **Set the root directory to `web`.**
-   (It's an npm workspace — Vercel installs from the repo root and builds `web`.)
+2. Import it in Vercel. **Leave the root directory as the repo root — do NOT
+   set it to `web`.** This is an npm workspace: `p88-core` only resolves when
+   `npm install` runs at the root. `vercel.json` handles the rest (it builds
+   `--workspace web` and serves `web/.next`). Setting the root to `web` breaks
+   the install.
 3. Add both env vars in Vercel → Settings → Environment Variables.
 4. Deploy. Staff visit the URL and enter the password once; a cookie keeps them
    signed in for 30 days.
+
+Verified against a clean `git clone` + `npm install` + build.
 
 ## How it works
 
