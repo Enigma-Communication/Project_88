@@ -1,5 +1,8 @@
 {
   "name": "project-88",
   "private": true,
-  "workspaces": ["core", "generator", "web"]
+  "workspaces": ["core", "generator", "web"],
+  "dependencies": {
+    "next": "^16.3.1"
+  }
 }

@@ -1,0 +1,9 @@
+# 170MB of client photos — never needed by the build
+example images/
+
+# local artefacts
+node_modules/
+.next/
+generator/.cache/
+generator/output/
+Reference/

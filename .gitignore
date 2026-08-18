@@ -36,3 +36,5 @@ example images/*.png
 
 # TS incremental build cache
 *.tsbuildinfo
+.vercel
+.env*
