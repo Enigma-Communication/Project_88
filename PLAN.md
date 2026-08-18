@@ -166,6 +166,44 @@ Handled by the crop step for 90% of cases. Where it isn't — the flag/cape in `
 
 ---
 
+## ✅ DAY 2 COMPLETE — web app built and verified
+
+Password-gated Next.js app at `web/`, ready to deploy to Vercel.
+Verified end to end in Chrome: upload → preflight verdict → crop drag/resize →
+generate → background toggles → stencil inversion → download.
+
+### Structure — npm workspace
+
+```
+core/       p88-core: triage, crop, prompt, matte, verdict   (shared)
+generator/  the p88 CLI
+web/        the Next.js app
+```
+
+A symlink was tried first; Next refuses to follow one out of the project root.
+`dotenv` was also dropped from core — the web build has no such dependency, so
+`generator/.env` is parsed by hand and a missing file is treated as normal.
+
+### Worth knowing
+**Photos are downscaled to 3000px in the browser before upload.** Camera files
+run 5–25MB and the larger ones exceeded the request body limit outright — a
+21MB source failed, a 3.4MB one passed. Staff also shoot from the sideline on
+mobile data. 3000px keeps far more detail than the pipeline needs, since the
+crop is upscaled to 1280px.
+
+### To deploy
+1. Push to GitHub
+2. Import in Vercel, **root directory `web`**
+3. Set `GOOGLE_API_KEY` and `APP_PASSWORD`
+4. Deploy
+
+### Still open
+- Sponsor logos occasionally still legible — parked with the AD
+- No generation history; single shared password, not per-user accounts
+- **Rotate the API key before client handover** — it arrived via chat
+
+---
+
 ## ✅ SAVE STATE — Day 1 complete, 18 Aug
 
 Working end to end. Committed to git.
