@@ -1,0 +1,22 @@
+{
+  "name": "p88-generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "refs": "tsx src/slice-refs.ts",
+    "triage": "tsx src/check.ts",
+    "triage:all": "tsx src/triage-all.ts",
+    "crop": "tsx src/test-crop.ts",
+    "matte": "tsx src/test-matte.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "dotenv": "^17.2.4",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.7",
+    "typescript": "^5.9.3"
+  }
+}

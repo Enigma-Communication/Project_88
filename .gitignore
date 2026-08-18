@@ -1,0 +1,31 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+.next/
+out/
+
+# triage cache (regenerable, costs quota to rebuild but not source)
+generator/.cache/
+generator/output/
+
+# client photos — 170MB, live on disk not in git
+example images/*.jpg
+example images/*.jpeg
+example images/*.png
+
+# generated illustrations
+*_illustration*.png
+*_illustration*.jpg
+*_crop.jpg
+*_raw.png
+*_on-white.png
+*_on-black.png
+*_on-navy.png
+*_on-grey.png
+*_face.jpg
+
+.DS_Store

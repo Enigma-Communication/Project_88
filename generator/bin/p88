@@ -1,0 +1,5 @@
+#!/bin/bash
+# Project 88 illustration generator.
+# Runs from whatever folder you're in; output lands beside the source image.
+GEN_DIR="/Users/will/Desktop/Project 88/generator"
+exec npx --prefix "$GEN_DIR" tsx "$GEN_DIR/src/cli.ts" "$@"

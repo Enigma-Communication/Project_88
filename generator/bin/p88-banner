@@ -1,0 +1,34 @@
+#!/bin/bash
+B=$'\033[1m'; D=$'\033[2m'; C=$'\033[36m'; G=$'\033[32m'; R=$'\033[0m'
+cat <<BANNER
+${B}Project 88${R} ${D}· photo → screenprint illustration${R}
+
+${D}You are in:${R} $(pwd)
+
+${B}Clean test${R}
+  ${C}p88 --clean${R}                                    ${D}wipe previous outputs${R}
+  ${C}p88 DSC04576.jpg --variant=v3_reffirst --keep${R}   ${D}generate${R}
+  ${C}open DSC04576_illustration_on-black.png${R}         ${D}look at it${R}
+
+${B}Options${R}
+  ${D}--variant=${R}v3_reffirst ${D}(best) |${R} v2_styleonly ${D}|${R} v1_universal
+  ${D}--model=${R}nb31 ${D}(default) |${R} pro3 ${D}(slower, better) |${R} nb25
+  ${D}--keep${R}      ${D}crop + raw + comps on white/black/navy${R}
+  ${D}--clean${R}     ${D}delete everything p88 made here${R}
+  ${D}--help${R}      ${D}full list${R}
+
+${B}Photos${R} ${D}(green = clean solo, easiest)${R}
+BANNER
+for f in *.jpg; do
+  t=$(mdls -name kMDItemUserTags -raw "$f" 2>/dev/null | tr -d '\n() "' | sed 's/,$//')
+  case "$t" in
+    Green)  dot=$'\033[32m●\033[0m' ;;
+    Orange) dot=$'\033[33m●\033[0m' ;;
+    Red)    dot=$'\033[31m●\033[0m' ;;
+    *)      dot=" " ;;
+  esac
+  printf "  %s %s\n" "$dot" "$f"
+done
+echo
+echo "${D}Full reference: Project 88/TEST-CARD.md${R}"
+echo
