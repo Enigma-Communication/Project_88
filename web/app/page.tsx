@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CropBox, { type Box } from "./crop-box";
 import { downscale } from "./downscale";
+import { recolour, SWATCHES } from "./recolour";
 
 type Preflight = {
   verdict: "READY" | "NEEDS CROP" | "NOT SUITABLE";
@@ -38,6 +39,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [bg, setBg] = useState<"checker" | "white" | "black" | "navy">("checker");
   const [inverted, setInverted] = useState(false);
+  const [ink, setInk] = useState<string>(SWATCHES[0].hex);
+  const [bgTouched, setBgTouched] = useState(false);
+  const [tinted, setTinted] = useState<{ png: string; stencil: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -86,7 +90,41 @@ export default function Home() {
     }
   };
 
-  const shown = result ? (inverted ? result.stencil : result.png) : null;
+  /**
+   * Keep the ink visible against the preview background.
+   *
+   * White ink on the white background renders a blank panel, which reads as a
+   * broken export rather than a colour choice. Auto-switch unless the operator
+   * has picked a background themselves.
+   */
+  useEffect(() => {
+    if (bgTouched) return;
+    const lum = (hex: string) =>
+      0.2126 * parseInt(hex.slice(1, 3), 16) +
+      0.7152 * parseInt(hex.slice(3, 5), 16) +
+      0.0722 * parseInt(hex.slice(5, 7), 16);
+    const inkLum = lum(ink);
+    if (inkLum > 200) setBg("black");
+    else if (inkLum < 40) setBg("white");
+    else setBg("checker");
+  }, [ink, bgTouched]);
+
+  // recolour whenever the swatch or the result changes — no regeneration needed
+  useEffect(() => {
+    if (!result) { setTinted(null); return; }
+    let live = true;
+    (async () => {
+      const [png, stencil] = await Promise.all([
+        recolour(result.png, ink),
+        recolour(result.stencil, ink),
+      ]);
+      if (live) setTinted({ png, stencil });
+    })();
+    return () => { live = false; };
+  }, [result, ink]);
+
+  const out = tinted ?? result;
+  const shown = out ? (inverted ? out.stencil : out.png) : null;
   const bgClass = bg === "checker" ? "checker" : "";
   const bgStyle = bg === "white" ? "#fff" : bg === "black" ? "#111" : bg === "navy" ? "#001A5C" : undefined;
 
@@ -156,10 +194,6 @@ export default function Home() {
               <Row k="Subject height" v={`${pre.subjectPx}px`} />
             </dl>
 
-            <p className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 text-sm text-neutral-400">
-              {pre.subject}
-            </p>
-
             <button onClick={generate} disabled={stage === "generating"}
               className="w-full rounded-xl bg-[#D82020] px-4 py-3 font-medium text-white transition hover:brightness-110 disabled:opacity-50">
               {stage === "generating" ? "Generating…" : "Generate illustration"}
@@ -180,11 +214,20 @@ export default function Home() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-neutral-500">Preview on</span>
             {(["checker", "white", "black", "navy"] as const).map((b) => (
-              <button key={b} onClick={() => setBg(b)}
+              <button key={b} onClick={() => { setBg(b); setBgTouched(true); }}
                 className={`rounded-lg border px-3 py-1.5 text-sm capitalize ${bg === b ? "border-neutral-500 bg-neutral-800 text-white" : "border-neutral-800 text-neutral-400 hover:bg-neutral-900"}`}>
                 {b}
               </button>
             ))}
+            <div className="mx-auto flex items-center gap-2 sm:mx-0">
+              <span className="text-sm text-neutral-500">Ink</span>
+              {SWATCHES.map((s) => (
+                <button key={s.hex} onClick={() => setInk(s.hex)} title={s.name} aria-label={s.name}
+                  className={`h-8 w-8 rounded-full border-2 transition ${ink === s.hex ? "border-white scale-110" : "border-neutral-700 hover:border-neutral-500"}`}
+                  style={{ background: s.hex }} />
+              ))}
+            </div>
+
             <button onClick={() => setInverted((v) => !v)}
               className={`ml-auto rounded-lg border px-3 py-1.5 text-sm ${inverted ? "border-[#D82020] bg-[#D82020]/15 text-[#ff6b6b]" : "border-neutral-800 text-neutral-400 hover:bg-neutral-900"}`}>
               {inverted ? "Stencil (inverted)" : "Standard fill"}
@@ -192,11 +235,11 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <a href={result.png} download="illustration.png"
+            <a href={out?.png ?? result.png} download="illustration.png"
                className="rounded-xl bg-[#D82020] px-4 py-3 font-medium text-white hover:brightness-110">
               Download PNG
             </a>
-            <a href={result.stencil} download="illustration-stencil.png"
+            <a href={out?.stencil ?? result.stencil} download="illustration-stencil.png"
                className="rounded-xl border border-neutral-700 px-4 py-3 font-medium text-neutral-200 hover:bg-neutral-800">
               Download stencil PNG
             </a>

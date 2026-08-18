@@ -69,7 +69,8 @@ export function buildPrompt(t: Triage): string {
     `KEEP THE JERSEY PATTERN: the kit's own stripe and panel design must be preserved. ` +
       `Draw the vertical stripes, hoops, chevrons and colour-block panels as bold flat shapes that follow the ` +
       `body and its folds. NEVER flood the jersey with one unbroken block of ink and never let a logo fill ` +
-      `cover the stripes. Remove the printing on the jersey; keep the jersey.`,
+      `cover the stripes. Remove the printing on the jersey; keep the jersey. ` +
+      `The stripes are bold flat shapes, but their edges are cut by hand — ragged, not ruled.`,
 
     GROUND,
 

@@ -46,6 +46,8 @@ Options
   --force                    generate even if preflight says NOT SUITABLE
   --stencil                  also write a stencil-inverted PNG for dark backgrounds
   --outline=<px>             stencil contour thickness (default scales with size)
+  --ink=<hex>                ink colour (default ${INK_HEX})
+                             swatches: #F90000 #0027C5 #000000 #FFFFFF
 
 ${C.dim("Triage results are cached per photo — re-running costs no vision quota.")}
 `);
@@ -69,6 +71,7 @@ if (args.includes("--clean")) {
 const model = flag("model", DEFAULT_IMAGE_MODEL) as ImageModelKey;
 
 const keep = args.includes("--keep");
+const ink = flag("ink", INK_HEX);
 
 // resolve the input image
 let input = args.find((a) => !a.startsWith("--"));
@@ -93,7 +96,7 @@ const done = (msg: string) => console.log(C.green("✓") + " " + C.dim(msg));
 
 console.log(`\n${C.bold("Project 88")} ${C.dim("· photo → screenprint illustration")}`);
 console.log(C.dim(`source  ${src}`));
-console.log(C.dim(`model   ${IMAGE_MODELS[model]}   ink ${INK_HEX}\n`));
+console.log(C.dim(`model   ${IMAGE_MODELS[model]}   ink ${ink}\n`));
 
 try {
   // 1 — preflight
@@ -152,7 +155,7 @@ try {
   // 4 — ink separation
   step(4, "ink separation");
   const ground = await detectGround(raw);
-  const matted = await matteToInk(raw);
+  const matted = await matteToInk(raw, { hex: ink });
   const before = await sharp(matted).metadata();
   const inked = await stripBorderFrame(matted);
   const m = await sharp(inked).metadata();
@@ -169,7 +172,7 @@ try {
   let stencil: Buffer | null = null;
   if (wantStencil) {
     const outlinePx = flag("outline", "");
-    stencil = await stencilInvert(inked, outlinePx ? { outline: Number(outlinePx) } : {});
+    stencil = await stencilInvert(inked, { hex: ink, ...(outlinePx ? { outline: Number(outlinePx) } : {}) });
     fs.writeFileSync(out.replace(/\.png$/, "_stencil.png"), stencil);
   }
 

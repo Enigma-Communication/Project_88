@@ -53,3 +53,12 @@ Deliverable only, not a prompt instruction. The illustration is a one-colour
 ink separation; on dark backgrounds it can also be exported inverted, the way
 a stencil artist cuts a plate — ink and carved-out areas swapping, so the
 figure reads light-on-dark. Handled in export, not by the model.
+
+
+INK ROUGHNESS (added after round 3 — the output drifted smooth)
+The roughness is the whole character of the style and must not be lost to the
+other rules. Every contour and every edge of every flat shape is hand-cut and
+hand-printed: ragged, broken, uneven, wobbling in thickness, occasionally
+skipping or breaking away entirely. Nothing is smooth, even, tapered or
+vector-like. This applies to the jersey stripes and panels too — they are bold
+flat shapes, but their edges are cut by hand, not drawn with a ruler.
