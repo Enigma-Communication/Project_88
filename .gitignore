@@ -33,3 +33,6 @@ example images/*.png
 *_face.jpg
 
 .DS_Store
+
+# TS incremental build cache
+*.tsbuildinfo
