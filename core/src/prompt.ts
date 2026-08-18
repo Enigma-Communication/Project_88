@@ -38,7 +38,8 @@ const GROUND =
   "Do NOT draw a border, frame, outline box, rule or edge of any kind around the image. " +
   "Do NOT draw the ground, grass, turf, a baseline, a shadow, or anything beneath the feet. " +
   "Do NOT add motion lines, speed lines, speckles, splatter or decorative marks around the figure. " +
-  "Do NOT add paper texture, grain or vignette. " +
+  "Do NOT add paper texture, grain, vignette or speckle to the BACKGROUND — the ink itself is grainy " +
+  "(see below), but the empty space around the figure stays perfectly clean and flat. " +
   "Nothing at all may touch or approach the edges of the canvas — only the athlete, floating in empty white space.";
 
 export function buildPrompt(t: Triage): string {
@@ -75,5 +76,38 @@ export function buildPrompt(t: Triage): string {
     GROUND,
 
     `Avoid: ${NEGATIVE}.`,
+
+    // Prompt.md § E — INK ROUGHNESS (round 4). Placed last deliberately: every
+    // other rule pulls the output toward careful, and careful reads as smooth.
+    `INK ROUGHNESS — THIS OUTRANKS EVERY RULE ABOVE. The roughness is the whole character of the ` +
+      `style and must not be lost to the other instructions. Every contour and every edge of every flat ` +
+      `shape is hand-cut and hand-printed: ragged, broken, uneven, wobbling in thickness, occasionally ` +
+      `skipping or breaking away entirely. Nothing is smooth, even, tapered or vector-like. This applies ` +
+      `to the jersey stripes and panels too — bold flat shapes, but cut by hand, not drawn with a ruler.`,
+
+    // Prompt.md § E — CUT, NOT DRAWN (round 5). The AD read the output as
+    // "cartoony": smooth outlines, even weight, illustrative polish.
+    `CUT, NOT DRAWN. Cartoon is the failure mode: smooth confident outlines, even line weight, tidy ` +
+      `shapes, clean tapers, illustrative polish. This is NOT a drawing. It is a stencil plate cut with a ` +
+      `blade and pulled through a screen, and every mark must show it.`,
+
+    `CUT EDGES: shapes are cut, not drawn — hard, faceted, slightly angular, as though sliced from card ` +
+      `with a scalpel. Nicked, over-cut at the corners, wandering off the true line, squared off where the ` +
+      `blade changed direction. Contours break, skip and pick up again out of register.`,
+
+    `INK GRAIN: the fill is NOT solid. It is starved and uneven — mottled, pitted, speckled and patchy, ` +
+      `heavier where the ink pooled, thinning to broken specks where the screen ran dry. This breakup sits ` +
+      `INSIDE the ink areas, as light flecks, pinholes and dry-brush gaps carved out of the red.`,
+
+    `DISTORTED AND ERODED: edges are chewed and degraded, as though the plate is worn and this is a late ` +
+      `pull from a long run — slight misregistration, ragged bite, small fragments detached and floating ` +
+      `free of the main shape. Keep all of this texture in the ink; the background stays perfectly clean.`,
+
+    // Prompt.md § E — corrective. The roughness block above, given last word,
+    // flooded the jersey and lost the club stripes (the round 3 failure).
+    `STRIPES SURVIVE THE GRAIN — FINAL RULE. None of the roughness above is licence to flood the jersey. ` +
+      `Grain, starved fill and cut edges apply WITHIN each stripe and panel, never across them. The kit's ` +
+      `stripe pattern must stay legible as bold flat shapes with clear light gaps between them — hand-cut ` +
+      `and grainy, but unmistakably striped. If roughness and the stripe pattern conflict, THE STRIPES WIN.`,
   ].join("\n\n");
 }

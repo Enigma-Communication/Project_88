@@ -33,7 +33,7 @@ photorealism, full colour rendering, smooth vector polish, gradients, airbrush s
 
 E. Art Director Amendments
 (18 Aug — added after first review round. Keep this file and
-generator/src/prompt.ts in sync.)
+core/src/prompt.ts in sync.)
 
 SOLID FILL, NO LOGOS — BUT KEEP THE JERSEY PATTERN
 Sponsor logos, brand marks, jersey lettering, numbers, badges and small
@@ -62,3 +62,37 @@ hand-printed: ragged, broken, uneven, wobbling in thickness, occasionally
 skipping or breaking away entirely. Nothing is smooth, even, tapered or
 vector-like. This applies to the jersey stripes and panels too — they are bold
 flat shapes, but their edges are cut by hand, not drawn with a ruler.
+
+
+CUT, NOT DRAWN (added after round 5 — the AD read the output as "cartoony")
+Cartoon is the failure mode to design against: smooth confident outlines, even
+line weight, tidy shapes, clean tapers and illustrative polish. This is not a
+drawing. It is a stencil plate cut with a blade and pulled through a screen,
+and every mark must carry evidence of that.
+
+CUT EDGES. Shapes are cut, not drawn. Edges are hard, faceted and slightly
+angular, as though sliced from card with a scalpel — nicked, over-cut at the
+corners, wandering off the true line, occasionally squared off where the blade
+changed direction. Contours are not continuous: they break, skip, and pick up
+again out of register.
+
+INK GRAIN. The fill is not solid. It is starved and uneven — mottled, pitted,
+speckled and patchy, heavier where the ink pooled and thinning to broken specks
+where the screen ran dry. This breakup sits INSIDE the ink areas, as light
+flecks, pinholes and dry-brush gaps carved out of the red.
+
+DISTORTED AND ERODED. Edges are chewed and degraded, as though the plate is
+worn and this is a late pull from a long run: slight misregistration, ragged
+bite, small fragments detached and floating free of the main shape.
+
+THE BACKGROUND STAYS CLEAN. All grain, texture, speckle and breakup belongs to
+the ink and to the cut edges — never to the empty space around the figure. The
+deliverable is keyed to transparency by luminance, so any mark left on the
+ground survives as dirt in the cut-out.
+
+STRIPES SURVIVE THE GRAIN (round 5, corrective)
+The roughness rules above must not be read as licence to flood the jersey.
+Grain, starved fill and cut edges apply WITHIN each stripe and panel, never
+across them. The kit's stripe pattern stays legible as bold flat shapes with
+clear light gaps between them — hand-cut and grainy, but unmistakably striped.
+If roughness and the stripe pattern ever conflict, the stripes win.
