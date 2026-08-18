@@ -180,8 +180,9 @@ export async function stencilInvert(
   const W = info.width, H = info.height, N = W * H;
   const alphaAt = (i: number) => data[i * 4 + 3];
 
-  // scale the contour with the image so it reads the same at any size
-  const outline = opts.outline ?? Math.max(3, Math.round(Math.min(W, H) * 0.012));
+  // AD picked 6px at our typical ~640px output. Kept as a ratio rather than a
+  // hardcoded 6 so it still reads correctly if output resolution changes.
+  const outline = opts.outline ?? Math.max(3, Math.round(Math.min(W, H) * 0.0094));
 
   // flood the outside: transparent pixels reachable from the border
   const outside = new Uint8Array(N);
