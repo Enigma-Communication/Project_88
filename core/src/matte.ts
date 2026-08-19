@@ -153,6 +153,41 @@ export async function stripBorderFrame(png: Buffer): Promise<Buffer> {
 }
 
 /**
+ * Chamfer distance from a seed set. Two passes over the grid approximate a
+ * Euclidean distance closely enough for the few-pixel work below.
+ */
+function chamfer(seed: Uint8Array, W: number, H: number): Float32Array {
+  const N = W * H;
+  const BIG = 1e6;
+  const d = new Float32Array(N);
+  for (let i = 0; i < N; i++) d[i] = seed[i] ? 0 : BIG;
+  const D1 = 1, D2 = 1.4142;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      let v = d[i];
+      if (x > 0)              v = Math.min(v, d[i - 1] + D1);
+      if (y > 0)              v = Math.min(v, d[i - W] + D1);
+      if (x > 0 && y > 0)     v = Math.min(v, d[i - W - 1] + D2);
+      if (x < W - 1 && y > 0) v = Math.min(v, d[i - W + 1] + D2);
+      d[i] = v;
+    }
+  }
+  for (let y = H - 1; y >= 0; y--) {
+    for (let x = W - 1; x >= 0; x--) {
+      const i = y * W + x;
+      let v = d[i];
+      if (x < W - 1)              v = Math.min(v, d[i + 1] + D1);
+      if (y < H - 1)              v = Math.min(v, d[i + W] + D1);
+      if (x < W - 1 && y < H - 1) v = Math.min(v, d[i + W + 1] + D2);
+      if (x > 0 && y < H - 1)     v = Math.min(v, d[i + W - 1] + D2);
+      d[i] = v;
+    }
+  }
+  return d;
+}
+
+/**
  * Stencil inversion — swap ink and carved-out areas within the figure.
  *
  * The AD's note: on dark backgrounds, cut it the way a stencil artist would.
@@ -165,14 +200,40 @@ export async function stripBorderFrame(png: Buffer): Promise<Buffer> {
  * "inside the figure". Without that bound, inverting alpha would simply fill
  * the whole canvas.
  *
+ * Finding that silhouette is the hard part, and getting it wrong is what makes
+ * whole limbs come out hollow — outline only, no fill. Two separate things let
+ * the background flood get inside the figure:
+ *
+ *  1. BROKEN CONTOURS. The style is built on lines that break, skip and resume
+ *     (Prompt V2.md § E ORGANIC LINEWORK asks for exactly that), so the outline
+ *     of a limb is not a sealed loop. The flood walks through a 2-4px gap and
+ *     eats the interior. Measured on DSC02294: the flood was taking 47% of the
+ *     canvas as "outside" when the true figure left only 42% — both forearms
+ *     were being consumed through gaps in their own outlines.
+ *
+ *     Fixed by running a morphological close (dilate then erode by `seal`) over
+ *     the ink mask first, and flooding against that. It bridges the gaps
+ *     without moving the real edge, because dilate and erode cancel. `seal`
+ *     stays small deliberately: large enough for a broken line, too small to
+ *     weld a limb to the torso.
+ *
+ *  2. LIMBS CUT BY THE CROP. When the figure runs off the bottom of the frame,
+ *     the inside of a leg connects to the outside through the cut edge, and no
+ *     amount of sealing closes that — the shape is genuinely open there.
+ *
+ *     Fixed by not seeding the flood from those openings. Walking each canvas
+ *     edge, an open run with figure on BOTH sides and shorter than `maxCut` of
+ *     that edge is a sliced limb, not the exterior, so it is left unseeded.
+ *     The true exterior is never a short run flanked by figure.
+ *
  * A contour is then drawn back on. Inverting alone destroys the heavy outline
- * Prompt.md calls for, because that outline WAS the ink — flip it and the
+ * the spec calls for, because that outline WAS the ink — flip it and the
  * figure's edge becomes the transparent part. So we band the inside of the
  * silhouette edge back to solid ink at `outline` px wide.
  */
 export async function stencilInvert(
   png: Buffer,
-  opts: { hex?: string; outline?: number } = {},
+  opts: { hex?: string; outline?: number; seal?: number; maxCut?: number } = {},
 ): Promise<Buffer> {
   const hex = opts.hex ?? INK_HEX;
 
@@ -183,55 +244,71 @@ export async function stencilInvert(
   // AD picked 6px at our typical ~640px output. Kept as a ratio rather than a
   // hardcoded 6 so it still reads correctly if output resolution changes.
   const outline = opts.outline ?? Math.max(3, Math.round(Math.min(W, H) * 0.0094));
+  // Gap-bridging radius. ~4px at 640px; the measured breaches were 2-4px and
+  // the recovered area plateaus by 4, so there is nothing to gain by going wider.
+  const seal = opts.seal ?? Math.max(2, Math.round(Math.min(W, H) * 0.006));
+  // An open run along a canvas edge shorter than this fraction of that edge,
+  // with figure on both sides, is a limb the crop sliced through.
+  const maxCut = opts.maxCut ?? 0.45;
 
-  // flood the outside: transparent pixels reachable from the border
+  const OPEN = 24; // alpha at or below this is passable
+
+  // --- 1. seal the broken contours ---------------------------------------
+  const inkMask = new Uint8Array(N);
+  for (let i = 0; i < N; i++) inkMask[i] = alphaAt(i) > OPEN ? 1 : 0;
+
+  const dilated = new Uint8Array(N);
+  {
+    const d = chamfer(inkMask, W, H);
+    for (let i = 0; i < N; i++) dilated[i] = d[i] <= seal ? 1 : 0;
+  }
+  // erode by the same radius: distance from the complement of the dilation
+  const closed = new Uint8Array(N);
+  {
+    const inv = new Uint8Array(N);
+    for (let i = 0; i < N; i++) inv[i] = dilated[i] ? 0 : 1;
+    const d = chamfer(inv, W, H);
+    for (let i = 0; i < N; i++) closed[i] = d[i] > seal ? 1 : 0;
+  }
+
+  // --- 2. seed the flood, skipping limbs the crop cut through -------------
   const outside = new Uint8Array(N);
   const stack: number[] = [];
-  const OPEN = 24; // alpha at or below this is passable
-  for (let x = 0; x < W; x++) {
-    for (const i of [x, (H - 1) * W + x]) if (alphaAt(i) <= OPEN && !outside[i]) { outside[i] = 1; stack.push(i); }
+  const edges: Array<{ n: number; at: (t: number) => number }> = [
+    { n: W, at: (t) => t },                    // top
+    { n: W, at: (t) => (H - 1) * W + t },      // bottom
+    { n: H, at: (t) => t * W },                // left
+    { n: H, at: (t) => t * W + W - 1 },        // right
+  ];
+  for (const { n, at } of edges) {
+    let t = 0;
+    while (t < n) {
+      if (closed[at(t)]) { t++; continue; }
+      let e = t;
+      while (e < n && !closed[at(e)]) e++;
+      const flankedBothSides = t > 0 && e < n;
+      const narrow = e - t < n * maxCut;
+      if (!(flankedBothSides && narrow)) {
+        for (let q = t; q < e; q++) {
+          const i = at(q);
+          if (!outside[i]) { outside[i] = 1; stack.push(i); }
+        }
+      }
+      t = e;
+    }
   }
-  for (let y = 0; y < H; y++) {
-    for (const i of [y * W, y * W + W - 1]) if (alphaAt(i) <= OPEN && !outside[i]) { outside[i] = 1; stack.push(i); }
-  }
+  const visit = (i: number) => { if (!outside[i] && !closed[i]) { outside[i] = 1; stack.push(i); } };
   while (stack.length) {
     const i = stack.pop()!;
     const x = i % W, y = (i / W) | 0;
-    if (x > 0)     { const j = i - 1; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
-    if (x < W - 1) { const j = i + 1; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
-    if (y > 0)     { const j = i - W; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
-    if (y < H - 1) { const j = i + W; if (!outside[j] && alphaAt(j) <= OPEN) { outside[j] = 1; stack.push(j); } }
+    if (x > 0)     visit(i - 1);
+    if (x < W - 1) visit(i + 1);
+    if (y > 0)     visit(i - W);
+    if (y < H - 1) visit(i + W);
   }
 
-  // Chamfer distance from the outside, so we can band the silhouette edge.
-  // Two passes over the grid approximate a Euclidean distance closely enough
-  // for a contour of a few pixels.
-  const BIG = 1e6;
-  const dist = new Float32Array(N);
-  for (let i = 0; i < N; i++) dist[i] = outside[i] ? 0 : BIG;
-  const D1 = 1, D2 = 1.4142;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const i = y * W + x;
-      let d = dist[i];
-      if (x > 0)            d = Math.min(d, dist[i - 1] + D1);
-      if (y > 0)            d = Math.min(d, dist[i - W] + D1);
-      if (x > 0 && y > 0)   d = Math.min(d, dist[i - W - 1] + D2);
-      if (x < W - 1 && y > 0) d = Math.min(d, dist[i - W + 1] + D2);
-      dist[i] = d;
-    }
-  }
-  for (let y = H - 1; y >= 0; y--) {
-    for (let x = W - 1; x >= 0; x--) {
-      const i = y * W + x;
-      let d = dist[i];
-      if (x < W - 1)              d = Math.min(d, dist[i + 1] + D1);
-      if (y < H - 1)              d = Math.min(d, dist[i + W] + D1);
-      if (x < W - 1 && y < H - 1) d = Math.min(d, dist[i + W + 1] + D2);
-      if (x > 0 && y < H - 1)     d = Math.min(d, dist[i + W - 1] + D2);
-      dist[i] = d;
-    }
-  }
+  // --- 3. invert inside, band the edge back to solid ink ------------------
+  const dist = chamfer(outside, W, H);
 
   const r0 = parseInt(hex.slice(1, 3), 16);
   const g0 = parseInt(hex.slice(3, 5), 16);
