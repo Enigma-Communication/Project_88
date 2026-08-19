@@ -1,0 +1,33 @@
+{
+  "name": "p88-web-v2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3089",
+    "build": "next build",
+    "start": "next start -p 3089"
+  },
+  "dependencies": {
+    "@google/genai": "^2.17.1",
+    "jszip": "^3.10.1",
+    "next": "^16.3.1",
+    "p88-core": "*",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.3",
+    "@typescript/typescript-linux-x64": "7.0.2",
+    "@next/swc-linux-x64-gnu": "16.3.1"
+  }
+}

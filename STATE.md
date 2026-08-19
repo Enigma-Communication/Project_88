@@ -1,6 +1,6 @@
 # Project 88 — current state
 
-**Last updated:** 19 Aug 2026 · working tree clean bar `Font/`, 10 commits
+**Last updated:** 19 Aug 2026 · `web-v2/`, `Font/`, `Lockup/` untracked · 10 commits
 
 ---
 
@@ -104,18 +104,90 @@ no limb welded to the body. Both radii exposed as options (`seal`, `maxCut`).
 broken linework. If limbs go hollow again after a prompt change, look here
 first.
 
-### 3. A UX/CX uplift plan exists, unbuilt
+### 4. `web-v2/` — the UX uplift, built from the Figma boards
 
-Seven annotated boards in Figma —
-`https://www.figma.com/design/nBFJQNmSskvkD2FouQRDaL`
-(sign-in, examples-led start, review & crop, narrated generating, result,
-export/lockup composer, failure states). **Nothing from it is implemented.**
-Priorities it identifies, in order: batch triage, a real progress indicator,
-plain-English verdicts, session history, export presets, human error states.
+A second Next app beside `web/`, sharing `core/` unchanged. **`web/` is
+untouched** — same `package.json`, same deploy config, still the thing at
+`project-88-ten.vercel.app`.
 
----
+```
+web/      :3088   stable, deployed, unchanged
+web-v2/   :3089   the uplift, local only
+core/             shared by both, plus the CLI
+```
+
+Boards 02-05 built, plus 01 (sign-in) and the failure state the dog exposed.
+Export presets and the lockup composer (board 06) are still the next slice.
+
+| | |
+|---|---|
+| Run it | `cd web-v2 && npm run dev` → :3089 |
+| On a phone | `http://<mac-lan-ip>:3089` — QR at `/qr.html` |
+| Local password | `REDACTED` (`web-v2/.env.local`) |
+| Comment tool | Bottom-right widget → writes `web-v2/feedback/FEEDBACK.md` |
+
+**What it does that v1 does not**
+
+- **Batch tray.** Drop up to 40, all preflighted ~5 at a time, chips and
+  ranking filling in progressively. The wait sits on the home screen in the
+  dropzone, not on an empty review screen.
+- **Verdicts as sentences.** One finding, one instruction, composed from the
+  triage data — no second model call, deterministic, same photo reads the same
+  way twice. Metrics demoted to a disclosure.
+- **Narrated generating.** Four named stages, the real measured vision time,
+  a wipe on arrival, and a cancel.
+- **Session strip.** IndexedDB, survives a reload — the fix for the worst CX
+  bug in v1, where closing the tab lost every paid generation.
+- **Download pack.** Both versions in all four inks, eight PNGs, zipped in the
+  browser. Costs nothing at the API.
+- **A real sign-in** (board 01) replacing the browser's Basic-auth dialog, with
+  a working cookie gate in `web-v2/proxy.ts`.
+- **A rejection screen** for photos preflight cannot use, which reads the error
+  and says which of the three real causes it was.
+
+**Rules this build cost time to learn**
+
+- **`allowedDevOrigins` is required for phone testing.** Next blocks
+  cross-origin dev resources, which kills the HMR socket when you open the app
+  by LAN IP. The dev client then reloads on a loop, so nothing responds to a
+  tap — it looks like the app is broken, and the cause is one line in the
+  server log.
+- **Static files must bypass the auth matcher.** The sign-in screen is served
+  to people who are by definition not signed in and needs the poster, the
+  lockup and the fonts — all in `public/`. With only the `_next` paths excluded
+  they redirect to `/login` themselves and the gate renders with broken images.
+- **Figma's type is cap-trimmed.** Every button node carries
+  `text-box-trim:trim-both` with `text-box-edge:cap alphabetic`, so a 12px line
+  reports as a 10px box and padding is measured cap-to-baseline. Without it
+  all-caps labels sit optically high and every button is 2-4px too tall.
+- **Tracking is zero on buttons**, widened only on the small eyebrow labels. A
+  blanket 0.1em made "CHOOSE PHOTO" 203px against a spec of 174.
+- **A width baked into a shared component beats an unprefixed override.** The
+  lockup's own `w-full` silently won over the header's `w-[121px]` — same
+  specificity — and the mark vanished on mobile while desktop looked fine
+  because `lg:` outranks it.
+- **Tailwind v4 sets `cursor: default` on buttons**, unlike v3.
+- **`scroll-padding` is what makes `snap-start` respect a gutter.** Without it
+  the first card snaps flush to the container edge and cancels the padding.
+- **`web-v2/package.json` needs the same Linux `optionalDependencies` as
+  `web/`** or a Vercel build fails one native dep at a time.
+
+**Deliberate divergences from the Figma file**, all on request:
+
+- example captions and chip copy in PP Formula Extended, not Archivo/IBM Plex
+- the daily 40 cap removed entirely — the club moves to its own API key
+- "Sign out" in the top bar where the file has the counter
+- hero copy is "an accent", not "a screenprint"
 
 ## ▶ NEXT
+
+0. **Decide where `web-v2` deploys.** It is build-ready — Linux deps pinned,
+   comment tool excluded via `.vercelignore` — but `vercel.json` points at
+   `web/` and `.vercel/project.json` links this folder to the **project-88**
+   project. Deploying `--prod` as-is would repoint
+   `project-88-ten.vercel.app` at v2 and take the stable app down. A second
+   Vercel project keeps both. **Also: deploying ships the licensed fonts to a
+   public URL** — the licence check that keeps `Font/` untracked applies.
 
 1. **AD reviews the V2 output.** Nothing has been generated through the new
    prompt yet — the deploy is the test. Both changes shipped unverified against

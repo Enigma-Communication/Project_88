@@ -1,0 +1,10 @@
+# licence check still pending on the font binaries — same reason Font/ is untracked
+public/fonts/
+.env*.local
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+next-env.d.ts
+# the comment tool's written output, not app/api/feedback/ — anchored so the
+# route source stays tracked
+/feedback/

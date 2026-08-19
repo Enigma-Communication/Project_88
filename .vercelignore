@@ -7,3 +7,10 @@ node_modules/
 generator/.cache/
 generator/output/
 Reference/
+
+# The in-app comment tool is local-only. The widget is already compiled out of
+# a production bundle by its NODE_ENV guard, but the API route would still ship
+# as a function — and it writes to the filesystem, which has no business on a
+# deployed build. Excluded here rather than deleted so it keeps working in dev.
+web-v2/app/api/feedback/
+web-v2/feedback/

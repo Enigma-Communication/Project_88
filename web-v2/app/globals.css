@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+/*
+ * Type, as specified by the Figma file rather than inferred from the
+ * filenames in Font/ — which is how the first pass got it wrong.
+ *
+ * What the boards actually use, verified per text node:
+ *
+ *   88 Sans Grit          the wordmark, and only the wordmark (42.8px)
+ *   88 Sans Clean         big display — the 88px hero, the 18px chip labels
+ *   PP Formula Extended   every piece of UI: labels, buttons, headings,
+ *                         verdict copy, metrics. Bold and Regular.
+ *   Archivo               example captions, a few chip descriptions
+ *   IBM Plex Mono         the "on paper" style sub-captions
+ *
+ * PP Formula CONDENSED appears nowhere in the screens, despite the cover
+ * copy saying "condensed type" — the boards are the source of truth here.
+ *
+ * The two PP Formula weights register as one family so font-bold / font-normal
+ * select between them. Loaded from public/fonts, which is gitignored while the
+ * licence check on the binaries is open; Archivo and IBM Plex Mono come from
+ * Google via next/font and carry no such question.
+ */
+@font-face {
+  font-family: "88 Sans Grit";
+  src: url("/fonts/88Sans-Grit.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "88 Sans Clean";
+  src: url("/fonts/88Sans-Clean.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "PP Formula Ext";
+  src: url("/fonts/PPFormula_ExtReg_ALT.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "PP Formula Ext";
+  src: url("/fonts/PPFormula_ExtBold_ALT.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+@theme {
+  /* surfaces, straight off the boards */
+  --color-pitch: #0d0d0f;
+  --color-panel: #141417;
+  --color-raised: #1a1a1e;
+  --color-hairline: #26262b;
+  --color-edge: #38383f;
+
+  /* text ramp */
+  --color-bright: #edeae5;
+  --color-body: #9a9792;
+  --color-muted: #67645f;
+
+  /* named styles from the file */
+  --color-seasonal-red: #F90000;
+  --color-core-red: #E50025;
+  --color-ink: #D82020;
+  --color-paper: #F5F0E8;
+  --color-navy: #001A5C;
+
+  /* the amber the verdict card actually uses */
+  --color-warn: #E8A33D;
+  --color-warn-bg: #2A1F0B;
+
+  --font-grit: "88 Sans Grit", "88 Sans Clean", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "88 Sans Clean", "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "PP Formula Ext", "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+  /*
+   * The crop handle. 22px matches board 03, but a finger needs more than a
+   * mouse does, so it grows on coarse pointers — the crop box is the one
+   * control on the phone that carries the output quality.
+   */
+  --crop-handle: 22px;
+}
+
+@media (pointer: coarse) {
+  :root { --crop-handle: 30px; }
+}
+
+/*
+ * Tailwind v4 resets buttons to `cursor: default`. Every clickable surface in
+ * this app — buttons, the disclosure summary, the file-picker labels — gets the
+ * hand back, and anything disabled says so instead.
+ */
+@layer base {
+  button,
+  summary,
+  [role="button"],
+  label:has(> input[type="file"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+body {
+  background: var(--color-pitch);
+  /* the UI face, not a system stack — it is what every board is set in */
+  font-family: var(--font-ui);
+  color: var(--color-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * The type classes live in @layer components deliberately.
+ *
+ * Unlayered CSS beats layered CSS, so defining these bare would let .label
+ * silently override every text-[10px] utility on the same element. Inside the
+ * components layer, Tailwind's utilities win, so each class carries a default
+ * that call sites stay free to override.
+ */
+@layer components {
+  /* 88px hero on board 02: leading 0.83, tracking -2.2px at 88px = -0.025em. */
+  .display {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    line-height: 0.83;
+    letter-spacing: -0.025em;
+  }
+
+  /*
+   * The UI label.
+   *
+   * Two things here are load-bearing and both were wrong in the first pass.
+   *
+   * 1. TRACKING IS ZERO by default. The file only widens tracking on the small
+   *    eyebrow labels — INK, PREVIEW IT ON, WHAT THE PREFLIGHT SAW and the
+   *    like, which is what .eyebrow is for. Buttons, list rows and tabs are all
+   *    set solid. A blanket 0.1em made "CHOOSE PHOTO" 203px wide against a
+   *    spec of 174px.
+   *
+   * 2. THE BOX IS TRIMMED TO THE CAP HEIGHT. Every text node in the file
+   *    carries text-box-trim:trim-both with text-box-edge:cap alphabetic, so
+   *    a 12px line reports as a 10px box and padding is measured cap-to-
+   *    baseline. Without it an all-caps label sits optically high inside its
+   *    button, because the descender space hangs below the baseline with no
+   *    descenders in it — which is exactly the off-centre look. It also made
+   *    every button 2-4px too tall.
+   */
+  .label {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+  .label-reg { font-weight: 400; }
+
+  /* The widened section labels. 0.1em is the file's value; the dropzone uses 0.12em. */
+  .eyebrow {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /*
+   * The button face: PP Formula Extended Bold, uppercase, 6% tracking.
+   *
+   * 6% is what board 03's "Generate illustration" carries (0.72px at 12px) and
+   * it is the house setting for every button, so it lives here rather than
+   * being repeated per call site. .label deliberately stays at zero tracking —
+   * that is right for list rows and tabs, wrong for buttons, and conflating
+   * the two is what made the first pass 29px too wide.
+   *
+   * Tailwind v4's Preflight sets `cursor: default` on buttons, unlike v3, so
+   * the hand cursor has to be asked for explicitly. The base rule below covers
+   * every other clickable thing in the app.
+   */
+  .btn {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .btn:disabled { cursor: not-allowed; }
+
+  /* Small print and metrics: same family, regular, set solid. */
+  .meta {
+    font-family: var(--font-ui);
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  /*
+   * Cap-height trimming.
+   *
+   * The file applies this SELECTIVELY, not globally — it is on the buttons,
+   * the wordmark, the chip labels and the verdict chip, and off on headings
+   * and body copy. Applying it everywhere shrank the 88px hero from its
+   * specified 146px to 135px, because trimming the first line's ascent and the
+   * last line's descent eats real leading in multi-line text.
+   *
+   * So it is opt-in via .trim, and the classes that always want it carry it.
+   * Guarded because only Chromium 133+ ships it; elsewhere type falls back to a
+   * solid line box, a couple of px taller, which does not break the layout.
+   */
+  @supports (text-box: trim-both cap alphabetic) {
+    .trim, .btn { text-box: trim-both cap alphabetic; }
+  }
+}
+
+/* alpha checkerboard, so a transparent PNG is visibly transparent */
+.checker {
+  background-image:
+    linear-gradient(45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2e 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2e 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  background-color: #232326;
+}
+
+/*
+ * Board 04's wipe. The finished print is laid over the source crop and the
+ * mask travels down, so the photo underneath turns into the illustration.
+ * It runs once on arrival — the model returns one complete image, so there is
+ * no partial output to reveal and pretending otherwise would be a fake
+ * progress bar in another costume.
+ */
+@keyframes wipe-down {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+.wipe { animation: wipe-down 1.4s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+
+@keyframes wipe-line {
+  from { top: 0%; opacity: 1; }
+  to   { top: 100%; opacity: 0; }
+}
+.wipe-line { animation: wipe-line 1.4s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+
+/*
+ * The working label's ellipsis. Three spans on staggered delays rather than a
+ * spinner: it says "still going" without implying a percentage the app cannot
+ * know, which is the same reason the progress bar stalls short of the end.
+ */
+@keyframes ellipsis-dot {
+  0%, 60%, 100% { opacity: 0.15; }
+  30%           { opacity: 1; }
+}
+.ellipsis-dot { animation: ellipsis-dot 1.4s ease-in-out infinite; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wipe, .wipe-line, .pulse-dot, .ellipsis-dot { animation: none; }
+  .ellipsis-dot { opacity: 1; }
+  .wipe { clip-path: none; }
+  .wipe-line { display: none; }
+}
