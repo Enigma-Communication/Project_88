@@ -17,6 +17,7 @@ import { INKS } from "./lib/recolour";
 import { pool } from "./lib/concurrency";
 import { dataUrlToBlob, listSession, saveGeneration, type SessionEntry } from "./lib/session";
 import type { Box, Preflight, Result, TrayItem } from "./lib/types";
+import { MAX_BATCH } from "./lib/files";
 
 type Stage = "start" | "loading" | "review" | "generating" | "result";
 
@@ -47,27 +48,78 @@ export default function Home() {
   const [session, setSession] = useState<SessionEntry[]>([]);
   const [preflightMs, setPreflightMs] = useState(2100);
   const [retrying, setRetrying] = useState(false);
+  const [adding, setAdding] = useState(false);
+  /**
+   * Batch-level messages — the cap, mostly. Deliberately not `error`: that
+   * banner is headed "That did not come out" and framed as a failed
+   * generation, which is the wrong voice for "this batch is full".
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const autoPicked = useRef(false);
+
+  /**
+   * The tray as it stands right now, for the callbacks that must not close over
+   * a stale copy. onFiles is built once and reads the count to decide how much
+   * room is left; through state it would still be reading the empty array the
+   * first batch started from.
+   */
+  const itemsRef = useRef<TrayItem[]>([]);
+  useEffect(() => { itemsRef.current = items; }, [items]);
 
   useEffect(() => { listSession().then(setSession).catch(() => {}); }, []);
 
   const active = items.find((i) => i.id === activeId) ?? null;
 
-  /** Drop handler: build the tray immediately, then preflight in the background. */
-  const onFiles = useCallback(async (files: File[]) => {
+  /**
+   * Drop handler: build the tray immediately, then preflight in the background.
+   *
+   * `append` is the same path taken from the tray's add tile, and differs in
+   * three ways that all come from the operator being mid-job rather than at the
+   * start of one: the existing batch is kept, the loading screen is not shown
+   * (it would throw away the crop they are looking at), and autoPicked is left
+   * alone so a newly checked photo cannot yank the view off the one they are
+   * working on.
+   */
+  const onFiles = useCallback(async (files: File[], append = false) => {
     setError(null);
-    autoPicked.current = false;
-    // straight away, so the downscale is covered too — 40 camera files take a
-    // noticeable moment to shrink before a single request goes out
-    setStage("loading");
 
-    const shrunk = await Promise.all(files.slice(0, 40).map((f) => downscale(f)));
+    // measured against what is already in the tray, not against this drop —
+    // the cap is on the batch, and appending is how you would otherwise walk
+    // straight past it in twos and threes
+    const held = append ? itemsRef.current.length : 0;
+    const room = MAX_BATCH - held;
+    if (room <= 0) {
+      setNotice(`The batch already holds ${MAX_BATCH} photos. Remove one to add another.`);
+      return;
+    }
+    // Said out loud rather than silently sliced. Dropping a card of 60 and
+    // being given 40 with no message looks like the app lost twenty photos.
+    setNotice(
+      files.length > room
+        ? `Only room for ${room} more — ${files.length - room} not added.`
+        : null,
+    );
+    const taking = files.slice(0, room);
+
+    if (append) setAdding(true);
+    else {
+      autoPicked.current = false;
+      // straight away, so the downscale is covered too — 40 camera files take a
+      // noticeable moment to shrink before a single request goes out
+      setStage("loading");
+    }
+
+    const shrunk = await Promise.all(taking.map((f) => downscale(f)));
+    const stamp = Date.now();
     const fresh: TrayItem[] = shrunk.map((f, i) => ({
-      id: `${Date.now()}-${i}`,
+      // the random suffix matters once appending exists — two adds inside the
+      // same millisecond would otherwise collide on id and React would treat
+      // them as the same tile
+      id: `${stamp}-${Math.random().toString(36).slice(2, 8)}-${i}`,
       file: f,
-      name: files[i].name,
+      name: taking[i].name,
       thumbUrl: URL.createObjectURL(f),
       state: "waiting",
       pre: null,
@@ -75,7 +127,8 @@ export default function Home() {
       box: null,
     }));
 
-    setItems(fresh);
+    setItems((cur) => (append ? [...cur, ...fresh] : fresh));
+    if (append) setAdding(false);
 
     const t0 = performance.now();
     let measured = false;
@@ -112,7 +165,8 @@ export default function Home() {
 
     // Every photo failed, so no verdict will ever arrive to move us on. Show
     // the review screen anyway rather than leaving the dropzone spinning.
-    if (!anyChecked) setStage("review");
+    // Only on a fresh batch — when appending we are already there.
+    if (!anyChecked && !append) setStage("review");
   }, []);
 
   /**
@@ -143,6 +197,48 @@ export default function Home() {
     setResult(null);
     setError(null);
     setStage("review");
+  };
+
+  /**
+   * Drop one photo from the batch.
+   *
+   * Three things have to happen together, and the order matters. The object URL
+   * is revoked or the bitmap stays in memory for the life of the tab — the
+   * whole reason there is a cap at all. If the removed photo is the one on
+   * screen, the next openable one takes its place rather than leaving a review
+   * pane rendering a photo that is no longer in the batch. And emptying the
+   * tray returns to the start screen, because a review screen with nothing to
+   * review is a dead end with no way back.
+   */
+  const removeItem = (id: string) => {
+    const it = itemsRef.current.find((i) => i.id === id);
+    if (!it) return;
+    URL.revokeObjectURL(it.thumbUrl);
+
+    const rest = itemsRef.current.filter((i) => i.id !== id);
+    setItems(rest);
+    setError(null);
+    setNotice(null);
+
+    if (id !== activeId) return;
+
+    const openable = (i: TrayItem) => i.state === "checked" || i.state === "failed";
+    const next = rest.find(openable);
+    if (next) {
+      setActiveId(next.id);
+      setBox(next.box ?? next.pre?.box ?? null);
+      setResult(null);
+      setStage("review");
+      return;
+    }
+
+    setActiveId(null);
+    setBox(null);
+    setResult(null);
+    if (rest.length === 0) {
+      autoPicked.current = false;
+      setStage("start");
+    }
   };
 
   const skip = () => {
@@ -238,7 +334,7 @@ export default function Home() {
 
   const reset = () => {
     items.forEach((i) => URL.revokeObjectURL(i.thumbUrl));
-    setItems([]); setActiveId(null); setBox(null); setResult(null); setError(null);
+    setItems([]); setActiveId(null); setBox(null); setResult(null); setError(null); setNotice(null);
     autoPicked.current = false;
     setStage("start");
   };
@@ -323,7 +419,18 @@ export default function Home() {
               </div>
             )}
 
-            {items.length > 0 && <Tray items={items} activeId={activeId} onPick={pick} />}
+            {items.length > 0 && (
+              <Tray
+                items={items}
+                activeId={activeId}
+                adding={adding}
+                notice={notice}
+                onDismissNotice={() => setNotice(null)}
+                onPick={pick}
+                onAdd={(files) => onFiles(files, true)}
+                onRemove={removeItem}
+              />
+            )}
           </div>
         )}
       </main>

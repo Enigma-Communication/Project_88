@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { imageFiles, MAX_BATCH } from "../lib/files";
 
 /**
  * Board 02. The output is the onboarding.
@@ -155,7 +156,7 @@ export default function Start({
   }, []);
 
   const take = (list: FileList | null) => {
-    const files = Array.from(list ?? []).filter((f) => f.type.startsWith("image/") || /\.hei[cf]$/i.test(f.name));
+    const files = imageFiles(list);
     if (files.length) onFiles(files);
   };
 
@@ -234,7 +235,7 @@ export default function Start({
             </div>
 
             <p className="meta text-center text-[10px] text-muted">
-              JPG · PNG · HEIC &nbsp;·&nbsp; up&nbsp;to&nbsp;40 at a time
+              JPG · PNG · HEIC &nbsp;·&nbsp; up&nbsp;to&nbsp;{MAX_BATCH} at a time
             </p>
             </>}
 
