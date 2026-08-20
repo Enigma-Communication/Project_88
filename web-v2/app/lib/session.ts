@@ -22,6 +22,8 @@ export type StoredGeneration = {
   width: number;
   height: number;
   ink: string;
+  /** white mount used, when one was in play — local testing only, so optional */
+  mount?: number;
   png: Blob;
   stencil: Blob;
   sourceCrop: Blob;

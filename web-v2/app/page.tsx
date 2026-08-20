@@ -9,6 +9,8 @@ import Generating from "./components/generating";
 import ResultView from "./components/result";
 import SessionStrip from "./components/session-strip";
 import Feedback from "./components/feedback";
+import MountDial from "./components/mount-dial";
+import { loadMount } from "./lib/mount";
 import Rejected from "./components/rejected";
 import { downscale } from "./lib/downscale";
 import { INKS } from "./lib/recolour";
@@ -189,6 +191,9 @@ export default function Home() {
       fd.append("photo", active.file);
       fd.append("triage", JSON.stringify(active.pre.triage));
       if (box) fd.append("box", JSON.stringify(box));
+      // Local testing only. Omitted in production so the server's own default
+      // wins there and a stale localStorage value cannot follow a build out.
+      if (process.env.NODE_ENV !== "production") fd.append("mount", String(loadMount()));
 
       const res = await fetch("/api/generate", { method: "POST", body: fd, signal: ctrl.signal });
       const json = await res.json();
@@ -202,7 +207,8 @@ export default function Home() {
         dataUrlToBlob(r.png), dataUrlToBlob(r.stencil), dataUrlToBlob(r.sourceCrop),
       ]);
       const entry = await saveGeneration({
-        sourceName: active.name, width: r.width, height: r.height, ink: INKS[0].hex, png, stencil, sourceCrop,
+        sourceName: active.name, width: r.width, height: r.height, ink: INKS[0].hex,
+        mount: r.mount, png, stencil, sourceCrop,
       });
       setSession((cur) => [entry, ...cur]);
 
@@ -222,7 +228,10 @@ export default function Home() {
    * this is just a state swap — nothing is refetched and nothing is re-billed.
    */
   const openStored = (e: SessionEntry) => {
-    setResult({ png: e.pngUrl, stencil: e.stencilUrl, sourceCrop: e.sourceCropUrl, width: e.width, height: e.height });
+    setResult({
+      png: e.pngUrl, stencil: e.stencilUrl, sourceCrop: e.sourceCropUrl,
+      width: e.width, height: e.height, mount: e.mount,
+    });
     setResultName(e.sourceName);
     setStage("result");
   };
@@ -318,6 +327,7 @@ export default function Home() {
           </div>
         )}
       </main>
+      {process.env.NODE_ENV !== "production" && <MountDial />}
       {process.env.NODE_ENV !== "production" && <Feedback />}
     </>
   );

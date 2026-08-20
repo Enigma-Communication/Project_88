@@ -47,7 +47,13 @@ export default function SessionStrip({
             onClick={() => onPick(g)}
             className="h-[96px] w-[86px] shrink-0 overflow-hidden rounded-[4px] border border-hairline transition hover:border-edge"
             style={{ background: "#F5F0E8" }}
-            title={`${g.sourceName} · ${new Date(g.createdAt).toLocaleTimeString()}`}
+            title={[
+              g.sourceName,
+              new Date(g.createdAt).toLocaleTimeString(),
+              // only when a mount was recorded — old entries predate it, and
+              // "mount undefined" on a hover is worse than saying nothing
+              g.mount === undefined ? null : `mount ${g.mount === 0 ? "off" : g.mount.toFixed(2)}`,
+            ].filter(Boolean).join(" · ")}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={g.pngUrl} alt="" className="h-full w-full object-contain p-1.5" />

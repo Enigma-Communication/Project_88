@@ -27,6 +27,15 @@ export type Result = {
   sourceCrop: string;
   width: number;
   height: number;
+  /**
+   * The white mount the server used, echoed back rather than assumed. During a
+   * comparison the whole point is knowing which setting produced which file,
+   * and the client's idea of the value is exactly the thing under test.
+   *
+   * Optional because reopening a stored generation rebuilds a Result from
+   * IndexedDB, and entries saved before the mount existed have no value to give.
+   */
+  mount?: number;
 };
 
 /**
