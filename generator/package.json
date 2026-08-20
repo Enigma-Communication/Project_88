@@ -8,7 +8,8 @@
     "triage": "tsx src/check.ts",
     "triage:all": "tsx src/triage-all.ts",
     "crop": "tsx src/test-crop.ts",
-    "matte": "tsx src/test-matte.ts"
+    "matte": "tsx src/test-matte.ts",
+    "mount": "tsx src/test-mount.ts"
   },
   "dependencies": {
     "p88-core": "*"

@@ -19,12 +19,110 @@ export type CropResult = {
 /** Padding around the subject box, as a fraction of the box's larger side. */
 const PAD = 0.18;
 
+/**
+ * Default white mount, as a fraction of the crop's long edge added to EACH
+ * side. 0.15 on a 1000px-tall crop is a 1300px square with the figure centred.
+ *
+ * Tunable so a sweep can compare widths without a rebuild — see
+ * `generator/src/test-mount.ts`.
+ */
+export const MOUNT = Number(process.env.P88_MOUNT ?? 0.15);
+
+export type ModelInput = {
+  /** the JPEG handed to the model */
+  buffer: Buffer;
+  /**
+   * How tall the photo content is in that JPEG, mount excluded. The caller
+   * divides by the crop's own height to get the scale factor — which with a
+   * mount is not the output height, because most of the output is white.
+   */
+  contentHeight: number;
+};
+
+/**
+ * Sit the crop in the middle of a white square before it goes to the model.
+ *
+ * Two separate things make this change the output, and they pull the same way:
+ *
+ * 1. The crop is upscaled to `target` afterwards, so the mount decides how much
+ *    of the model's input the athlete actually occupies. Filling the frame gets
+ *    a faithful transcription; leaving room gets a bolder, flatter read. This
+ *    is the detail dial, and the only one we have that does not ask the
+ *    operator to crop differently.
+ * 2. GROUND in prompt.ts demands the figure "float in empty white space" and
+ *    touch no edge. A tight operator crop shows the model the exact opposite on
+ *    every submit. Mounting it makes the reference agree with the instruction.
+ *
+ * Square rather than an even border, on the AD's call — with the side benefit
+ * that every photo now reaches the model in the same shape whatever shape it
+ * was cropped, so crop aspect stops being a source of variance between one
+ * generation and the next.
+ *
+ * Costs nothing downstream: white is above MATTE_THRESHOLD, so the mount keys
+ * to alpha and `matteToInk`'s trim removes it. It never reaches the deliverable.
+ *
+ * Takes the source and the box rather than an open sharp pipeline on purpose:
+ * web-v2 resolves Next's bundled sharp while core resolves its own, and the two
+ * versions are deliberately not pinned together (see STATE.md), so a pipeline
+ * handed across that boundary is a dual-package hazard as well as a type error.
+ * Every sharp call for this stays in here.
+ *
+ * Does the mount as a resize-then-pad rather than `.extend()`:
+ * **sharp applies extend AFTER resize no matter which order they are called
+ * in**, so extending by the crop's own dimensions silently mounts the
+ * already-downscaled image and blows the canvas past `target`. Padding to size
+ * with `fit: "contain"` lands on exactly `target` square with no such trap.
+ *
+ * The raw intermediate is the full-quality handoff between the two stages — it
+ * is taken after the downscale, so it is a couple of MB, not the whole crop.
+ */
+export async function toModelInput(
+  src: string | Buffer,
+  box: { left: number; top: number; width: number; height: number } | null,
+  mount: number,
+  target = GEN_INPUT_PX,
+): Promise<ModelInput> {
+  const pipe = box
+    ? sharp(src).rotate().extract(box)
+    : sharp(src).rotate();
+
+  if (mount <= 0) {
+    const buffer = await pipe
+      .resize(target, target, { fit: "inside", withoutEnlargement: false })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+    const meta = await sharp(buffer).metadata();
+    return { buffer, contentHeight: meta.height ?? target };
+  }
+
+  // the crop occupies this much of the square; the rest is mount
+  const inner = Math.round(target / (1 + 2 * mount));
+  const stage1 = await pipe
+    .resize(inner, inner, { fit: "inside", withoutEnlargement: false })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const buffer = await sharp(stage1.data, { raw: stage1.info })
+    .resize(target, target, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  return { buffer, contentHeight: stage1.info.height };
+}
+
 export async function cropToSubject(
   src: string | Buffer,
   triageResult: Triage,
-  opts: { pad?: number; square?: boolean } = {},
+  opts: { pad?: number; square?: boolean; mount?: number } = {},
 ): Promise<CropResult> {
   const pad = opts.pad ?? PAD;
+  // Defaults off, not to MOUNT: web/ and the CLI are the stable pair and this
+  // changes what the model sees. web-v2 opts in explicitly.
+  const mount = opts.mount ?? 0;
   const img = sharp(src).rotate();
   const meta = await img.metadata();
   const W = meta.width!, H = meta.height!;
@@ -56,15 +154,12 @@ export async function cropToSubject(
   const width = Math.min(W - left, Math.round(x1 - x0));
   const height = Math.min(H - top, Math.round(y1 - y0));
 
-  const buffer = await sharp(src)
-    .rotate()
-    .extract({ left, top, width, height })
-    .resize(GEN_INPUT_PX, GEN_INPUT_PX, { fit: "inside", withoutEnlargement: false })
-    .jpeg({ quality: 92 })
-    .toBuffer();
+  const { buffer, contentHeight } = await toModelInput(src, { left, top, width, height }, mount);
 
-  const outMeta = await sharp(buffer).metadata();
-  const scale = (outMeta.height ?? GEN_INPUT_PX) / height;
+  // measured on the photo content, not the canvas — with a mount most of the
+  // canvas is white, and subjectPxAfter is meant to say how much real detail
+  // the athlete gets, which is exactly what the mount reduces
+  const scale = contentHeight / height;
 
   return {
     buffer,
