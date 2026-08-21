@@ -41,12 +41,12 @@ export function proxy(req: NextRequest) {
  * Static files have to pass the gate, not sit behind it.
  *
  * The sign-in screen is served to people who are by definition not signed in,
- * and it needs the poster, the lockup frames and the two licensed fonts — all
- * of which live in public/ and are served from the root. With only the _next
+ * and it needs the lockup frames, the Enigma credit and the two licensed fonts
+ * — all of which live in public/ and are served from the root. With only the _next
  * paths excluded they were being redirected to /login themselves, so the gate
  * rendered with broken images and fallback type.
  *
- * Nothing sensitive is in public/: fonts, the example plates, the poster. Every
+ * Nothing sensitive is in public/: fonts, the example plates, the lockup. Every
  * generated illustration is held in the browser, never written there.
  */
 export const config = {
