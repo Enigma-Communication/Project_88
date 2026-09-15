@@ -8,7 +8,7 @@ import Review from "./components/review";
 import Generating from "./components/generating";
 import ResultView from "./components/result";
 import SessionStrip from "./components/session-strip";
-import Feedback from "./components/feedback";
+// import Feedback from "./components/feedback"; // hidden on request — see below
 import MountDial from "./components/mount-dial";
 import { loadMount } from "./lib/mount";
 import Rejected from "./components/rejected";
@@ -435,7 +435,9 @@ export default function Home() {
         )}
       </main>
       {process.env.NODE_ENV !== "production" && <MountDial />}
-      {process.env.NODE_ENV !== "production" && <Feedback />}
+      {/* Comment tool hidden on request. Restore by uncommenting this line and
+          the `Feedback` import above — saved notes are untouched in localStorage. */}
+      {/* {process.env.NODE_ENV !== "production" && <Feedback />} */}
     </>
   );
 }

@@ -32,6 +32,13 @@ import { imageFiles, MAX_BATCH } from "../lib/files";
  * Downloaded and committed rather than hotlinked: Figma's asset URLs expire
  * after about a week.
  */
+/**
+ * THE RESULT row hidden on request. Flip to `true` to bring it back — the tiles,
+ * the phone carousel and its dots all come with it. The hero illustration above
+ * still cycles through EXAMPLES either way, so this only hides the row.
+ */
+const SHOW_RESULT = false;
+
 const EXAMPLES = [
   { src: "/examples/fig-01.png", kind: "Standard fill", on: "on paper", bg: "#F5F0E8", border: false },
   { src: "/examples/fig-02.png", kind: "Stencil", on: "on black", bg: "#0D0D0F", border: true },
@@ -265,6 +272,8 @@ export default function Start({
         </div>
       </div>
 
+      {/* Wrapped rather than re-indented, so restoring is one flag, not a diff. */}
+      {SHOW_RESULT && (<>
       {/* the 32px spacer sits above THE RESULT */}
       <div className="mt-12 flex items-center gap-[14px]">
         <span className="label text-[11px] text-body">The result</span>
@@ -323,6 +332,7 @@ export default function Start({
       <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-4">
         {EXAMPLES.map((ex) => <ExampleTile key={ex.src} ex={ex} />)}
       </div>
+      </>)}
 
       {children}
     </div>
