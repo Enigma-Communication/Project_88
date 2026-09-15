@@ -1,5 +1,9 @@
 # licence check still pending on the font binaries — same reason Font/ is untracked
-public/fonts/
+public/fonts/*
+!public/fonts/88Sans-Grit.woff2
+!public/fonts/88Sans-Clean.woff2
+!public/fonts/PPFormula_ExtReg_ALT.woff2
+!public/fonts/PPFormula_ExtBold_ALT.woff2
 .env*.local
 .next/
 node_modules/
